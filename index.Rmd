@@ -74,7 +74,7 @@ final_results <- results_fixtures %>%
 Row
 -----------------------------------------------------------------------
 
-### Outlay {data-width=300}
+### Outlay 
 ```{r}
 outlay <- sum(final_results$outlay)
 return <- sum(final_results$return)
@@ -95,7 +95,7 @@ valueBox(outlay,
 ```
 
 
-### Return {data-width=300}
+### Return 
 ```{r}
 valueBox(return, 
          icon = "fas fa-plus",
@@ -105,7 +105,7 @@ valueBox(return,
 ```
 
 
-### Profit {data-width=300}
+### Profit 
 ```{r}
 profit_colour <- if (profit_for_colour >= 0) {
 "green"
@@ -124,7 +124,7 @@ valueBox(profit, icon = "fas fa-money-bill-wave",
 Row
 -----------------------------------------------------------------------
 
-### Predictions {data-width=450}
+### Predictions 
 
 ```{r, fig.height= 3, fig.width= 8}
 next_gameweek <- predictions %>%  
@@ -166,7 +166,7 @@ next_gameweek_table %>%
 ```
 
 
-### Success Rate {data-width=450}
+### Success Rate 
 
 ```{r, fig.height= 3, fig.width= 5}
 final_results %>%  
@@ -189,7 +189,7 @@ final_results %>%
 Row
 -----------------------------------------------------------------------
 
-### Results {data-width=900}
+### Results 
 
 ```{r}
 
