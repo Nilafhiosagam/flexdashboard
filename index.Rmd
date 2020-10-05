@@ -1,0 +1,202 @@
+---
+title: "Premier League 2020/21"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+    theme: bootstrap
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(gt)
+library(lubridate)
+library(glue)
+library(janitor)
+library(scales)
+library(DT)
+
+todays_date <- as_date(Sys.Date())
+```
+
+
+```{r}
+data_path <- "~/R/projects/football/outputs/predictions/"
+
+files <- dir(data_path, pattern = "*.csv") 
+
+
+predictions <- files %>%
+  map(function(x) read_csv(file.path(data_path, x))) %>%  
+  reduce(rbind)
+```
+
+
+```{r}
+
+results_fixtures <- read_csv("~/R/projects/football/outputs/results_fixtures.csv") %>% 
+  mutate(Date = as_date(Date, tz = "GMT"), Date = Date + 1)
+
+final_predictions <- predictions %>%  
+  group_by(team_home, team_away) %>% 
+  slice_max(date_ran) %>% 
+  ungroup() %>% 
+  select(-season_start, -gameweek, -date)
+
+
+final_results <- results_fixtures %>% 
+  select(Gameweek, Date, Time, HomeTeam, AwayTeam, FTHG, FTAG, AvgH, AvgD, AvgA) %>% 
+  mutate(result = case_when(FTHG > FTAG ~ "W",
+                            FTHG < FTAG ~ "L",
+                            TRUE ~ "D")) %>% 
+  left_join(final_predictions, by = c("HomeTeam" = "team_home",
+                                    "AwayTeam" = "team_away")) %>% 
+  drop_na %>% 
+  mutate(accurate = case_when(result == .pred_class ~ TRUE,
+                              TRUE ~ FALSE)) %>% 
+  clean_names() %>%
+  mutate(selected_odds = case_when(pred_class == "W" ~ avg_h,
+                                   pred_class == "D" ~ avg_d,
+                                   pred_class == "L" ~ avg_a)) %>% 
+  mutate(outlay = 1) %>% 
+  mutate(return = case_when(accurate == "TRUE" ~ selected_odds,
+                            TRUE ~ 0))
+
+```
+
+
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### Outlay {data-width=300}
+```{r}
+outlay <- sum(final_results$outlay)
+return <- sum(final_results$return)
+profit <- return - outlay
+profit_for_colour <- profit
+
+outlay <- format(round(outlay, 2), nsmall = 2)
+return <- format(round(return, 2), nsmall = 2)
+profit <- format(round(profit, 2), nsmall = 2)
+
+outlay <- paste("€",outlay, sep = "")
+return <- paste("€",return, sep = "")
+profit <- paste("€",profit, sep = "")
+
+valueBox(outlay, 
+         icon = "fas fa-minus",
+         color = "red")
+```
+
+
+### Return {data-width=300}
+```{r}
+valueBox(return, 
+         icon = "fas fa-plus",
+         color = "green")
+
+
+```
+
+
+### Profit {data-width=300}
+```{r}
+profit_colour <- if (profit_for_colour >= 0) {
+"green"
+} else {
+"red"
+}
+  
+  
+
+valueBox(profit, icon = "fas fa-money-bill-wave",
+         color = profit_colour)
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### Predictions {data-width=450}
+
+```{r, fig.height= 3, fig.width= 8}
+next_gameweek <- predictions %>%  
+  group_by(team_home, team_away) %>% 
+  slice_max(date_ran) %>% 
+  filter(date >= todays_date) %>% 
+  arrange(date) %>% 
+  ungroup()
+
+next_gameweek_table <- next_gameweek %>%
+  select(-season_start, -gameweek, -date_ran) %>% 
+  mutate(.pred_class = str_replace_all(.pred_class, c("L" = "Away",
+                                                      "W" = "Home",
+                                                      "D" = "Draw"))) %>% 
+  rename("Match Date" = "date",
+         "Away Team" = "team_away",
+         "Home Team" = "team_home",
+         "Home" = ".pred_W",
+         "Draw" = ".pred_D",
+         "Away" = ".pred_L",
+         "Prediction" = ".pred_class")
+
+gameweek <- as.integer(min(next_gameweek$gameweek))
+date_ran <- as_date(min(next_gameweek$date_ran))
+
+next_gameweek_table %>% 
+  gt() %>% 
+  tab_header(title = "Predictions", 
+             subtitle = glue("Gameweek Starting: {gameweek}")) %>% 
+  tab_source_note(source_note = glue("Date ran: {date_ran}")) %>% 
+  fmt_percent(columns = vars(Home, Draw, Away)) %>%
+  cols_align(columns = vars(Home, Draw, Away, Prediction), align = "center") %>%
+  tab_spanner(label = "Weighting", columns = vars(Home, Draw, Away)) %>% 
+  tab_options(source_notes.font.size = 10) %>% 
+  data_color(columns = vars(Home, Draw, Away), 
+             colors = scales::col_numeric(
+               palette = c("red", "light green", "green", "dark green"),
+               domain = c(0, 1))) 
+```
+
+
+### Success Rate {data-width=450}
+
+```{r, fig.height= 3, fig.width= 5}
+final_results %>%  
+  mutate(success = case_when(accurate == TRUE ~ 1,
+                             TRUE ~ 0),
+         games = 1) %>%
+  group_by(gameweek) %>% 
+  summarise(accuracy = sum(success)/sum(games)) %>% 
+  ggplot() +
+  geom_col(aes(gameweek, accuracy), fill = "dark green") +
+  theme_light() +
+  scale_y_continuous(labels = percent_format()) +
+  labs(title = "Model Accuracy by Gameweek",
+       x = "Gameweek",
+       y = "Accuracy (%)")
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### Results {data-width=900}
+
+```{r}
+
+datatable(final_results)
+
+```
+
+
+
+
