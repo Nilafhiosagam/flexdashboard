@@ -9,6 +9,12 @@ editor_options:
   chunk_output_type: console
 ---
 
+<!-- Custom JS to help with formatting non-standard content -->
+<script src="custom-flexdashboard-components.js"></script> 
+
+
+
+
 ```{r setup, include=FALSE}
 library(flexdashboard)
 library(tidyverse)
@@ -18,6 +24,7 @@ library(glue)
 library(janitor)
 library(scales)
 library(DT)
+library(htmltools)
 
 todays_date <- as_date(Sys.Date())
 ```
@@ -137,7 +144,7 @@ valueBox(ROI,
 Row
 -----------------------------------------------------------------------
 
-### Predictions 
+### Predictions
 
 ```{r}
 next_gameweek <- predictions %>%  
@@ -163,7 +170,7 @@ next_gameweek_table <- next_gameweek %>%
 gameweek <- as.integer(min(next_gameweek$gameweek))
 date_ran <- as_date(min(next_gameweek$date_ran))
 
-next_gameweek_table %>% 
+gt_table <- next_gameweek_table %>% 
   gt() %>% 
   tab_header(title = "Predictions", 
              subtitle = glue("Gameweek Starting: {gameweek}")) %>% 
@@ -176,6 +183,8 @@ next_gameweek_table %>%
              colors = scales::col_numeric(
                palette = c("red", "light green", "green", "dark green"),
                domain = c(0, 1))) 
+
+div(gt_table, class='gt-no-scroll')
 ```
 
 ### Performance 
@@ -192,9 +201,9 @@ final_results %>%
   scale_color_manual(values = c("dark green", "red")) +
   theme_light() +
   scale_y_continuous(labels = dollar_format(prefix = "€"),  limits = c(0,NA)) +
-  labs(title = "Cumulative Profit/Loss by Gameweek",
+  labs(title = "Cumulative Profit/Loss",
        x = "Gameweek",
-       y = "Return (€)") +
+       y = "Profit/Loss (€)") +
   geom_line(aes(gameweek, running))
 ```
 
@@ -231,12 +240,13 @@ final_results %>%
   group_by(gameweek) %>% 
   summarise(accuracy = sum(success)/sum(games)) %>% 
   ggplot() +
-  geom_col(aes(gameweek, accuracy), fill = "dark green") +
+  geom_col(aes(gameweek, accuracy, fill = accuracy), show.legend = FALSE) +
   theme_light() +
   scale_y_continuous(labels = percent_format()) +
   labs(title = "Model Accuracy by Gameweek",
        x = "Gameweek",
-       y = "Accuracy (%)")
+       y = "Accuracy (%)") +
+  scale_fill_gradientn(colours = c("red", "orange", "light green", "dark green"), limits=c(0,1))
 ```
 
 
