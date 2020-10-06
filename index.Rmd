@@ -68,7 +68,8 @@ final_results <- results_fixtures %>%
 ```
 
 
-
+Overview
+=====================================  
 
 
 Row
@@ -80,14 +81,18 @@ outlay <- sum(final_results$outlay)
 return <- sum(final_results$return)
 profit <- return - outlay
 profit_for_colour <- profit
+ROI <- (profit/outlay) * 100
 
 outlay <- format(round(outlay, 2), nsmall = 2)
 return <- format(round(return, 2), nsmall = 2)
 profit <- format(round(profit, 2), nsmall = 2)
+ROI <- format(round(ROI, 2), nsmall = 2)
+
 
 outlay <- paste("€",outlay, sep = "")
 return <- paste("€",return, sep = "")
 profit <- paste("€",profit, sep = "")
+ROI <- paste(ROI, "%", sep = "")
 
 valueBox(outlay, 
          icon = "fas fa-minus",
@@ -105,7 +110,7 @@ valueBox(return,
 ```
 
 
-### Profit 
+### Profit/Loss 
 ```{r}
 profit_colour <- if (profit_for_colour >= 0) {
 "green"
@@ -119,6 +124,14 @@ valueBox(profit, icon = "fas fa-money-bill-wave",
          color = profit_colour)
 ```
 
+### ROI 
+```{r}
+valueBox(ROI, 
+         icon = "fas fa-percent",
+         color = profit_colour)
+
+```
+
 
 
 Row
@@ -126,7 +139,7 @@ Row
 
 ### Predictions 
 
-```{r, fig.height= 3, fig.width= 8}
+```{r}
 next_gameweek <- predictions %>%  
   group_by(team_home, team_away) %>% 
   slice_max(date_ran) %>% 
@@ -165,10 +178,52 @@ next_gameweek_table %>%
                domain = c(0, 1))) 
 ```
 
+### Performance 
 
-### Success Rate 
+```{r}
+final_results %>%  
+  group_by(gameweek) %>%
+  summarise(by_week = sum(return) - sum(outlay)) %>% 
+  mutate(colour = case_when(by_week > 0 ~ "dark green",
+                            TRUE ~ "red")) %>% 
+  mutate(running = cumsum(by_week)) %>% 
+  ggplot() +
+  geom_point(aes(gameweek, running, colour = colour, size = 5), show.legend = FALSE) +
+  scale_color_manual(values = c("dark green", "red")) +
+  theme_light() +
+  scale_y_continuous(labels = dollar_format(prefix = "€"),  limits = c(0,NA)) +
+  labs(title = "Cumulative Profit/Loss by Gameweek",
+       x = "Gameweek",
+       y = "Return (€)") +
+  geom_line(aes(gameweek, running))
+```
 
-```{r, fig.height= 3, fig.width= 5}
+
+Row
+-----------------------------------------------------------------------
+
+### Returns
+
+```{r}
+final_results %>%  
+  group_by(gameweek) %>%
+  summarise(by_week = sum(return) - sum(outlay)) %>% 
+  mutate(colour = case_when(by_week > 0 ~ "dark green",
+                            TRUE ~ "red")) %>% 
+  ggplot() +
+  geom_col(aes(gameweek, by_week, fill = colour), show.legend = FALSE) +
+  scale_fill_manual(values = c("dark green", "red")) +
+  theme_light() +
+  scale_y_continuous(labels = dollar_format(prefix = "€")) +
+  labs(title = "Model Return by Gameweek",
+       x = "Gameweek",
+       y = "Return (€)")
+```
+
+
+### Success Rate
+
+```{r}
 final_results %>%  
   mutate(success = case_when(accurate == TRUE ~ 1,
                              TRUE ~ 0),
@@ -184,6 +239,13 @@ final_results %>%
        y = "Accuracy (%)")
 ```
 
+
+
+
+
+
+Raw Data
+=====================================  
 
 
 Row
