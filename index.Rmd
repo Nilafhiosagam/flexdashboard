@@ -198,9 +198,10 @@ final_results %>%
   mutate(running = cumsum(by_week)) %>% 
   ggplot() +
   geom_point(aes(gameweek, running, colour = colour, size = 5), show.legend = FALSE) +
+  geom_hline(yintercept = 0, colour = "grey") +
   scale_color_manual(values = c("dark green", "red")) +
   theme_light() +
-  scale_y_continuous(labels = dollar_format(prefix = "€"),  limits = c(0,NA)) +
+  scale_y_continuous(labels = dollar_format(prefix = "€")) +
   labs(title = "Cumulative Profit/Loss",
        x = "Gameweek",
        y = "Profit/Loss (€)") +
@@ -214,17 +215,21 @@ Row
 ### Returns
 
 ```{r}
-final_results %>%  
+accuracy <- final_results %>%  
   group_by(gameweek) %>%
   summarise(by_week = sum(return) - sum(outlay)) %>% 
   mutate(colour = case_when(by_week > 0 ~ "dark green",
-                            TRUE ~ "red")) %>% 
-  ggplot() +
+                            TRUE ~ "red")) 
+
+  ggplot(accuracy) +
   geom_col(aes(gameweek, by_week, fill = colour), show.legend = FALSE) +
+  geom_hline(yintercept = 0, colour = "grey") +
+  geom_hline(yintercept = mean(accuracy$by_week), colour = "black", linetype = 3, size = 1) +
   scale_fill_manual(values = c("dark green", "red")) +
   theme_light() +
   scale_y_continuous(labels = dollar_format(prefix = "€")) +
   labs(title = "Model Return by Gameweek",
+       caption = "Dotted line indicates average return (by gameweek)",
        x = "Gameweek",
        y = "Return (€)")
 ```
@@ -233,17 +238,23 @@ final_results %>%
 ### Success Rate
 
 ```{r}
-final_results %>%  
+accuracy_percent <- final_results %>%  
   mutate(success = case_when(accurate == TRUE ~ 1,
                              TRUE ~ 0),
          games = 1) %>%
   group_by(gameweek) %>% 
-  summarise(accuracy = sum(success)/sum(games)) %>% 
-  ggplot() +
+  summarise(accuracy = sum(success)/sum(games)) 
+
+
+
+  ggplot(accuracy_percent) +
   geom_col(aes(gameweek, accuracy, fill = accuracy), show.legend = FALSE) +
+  geom_hline(yintercept = 0, colour = "grey") +
+  geom_hline(yintercept = mean(accuracy_percent$accuracy), colour = "black", linetype = 3, size = 1) +
   theme_light() +
   scale_y_continuous(labels = percent_format()) +
   labs(title = "Model Accuracy by Gameweek",
+       caption = "Dotted line indicates average accuracy (by gameweek)",
        x = "Gameweek",
        y = "Accuracy (%)") +
   scale_fill_gradientn(colours = c("red", "orange", "light green", "dark green"), limits=c(0,1))
