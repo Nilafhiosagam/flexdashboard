@@ -25,6 +25,7 @@ library(janitor)
 library(scales)
 library(DT)
 library(htmltools)
+library(rvest)
 
 todays_date <- as_date(Sys.Date())
 ```
@@ -75,9 +76,31 @@ final_results <- results_fixtures %>%
 ```
 
 
+
 Overview
 =====================================  
 
+Row {data-height=20}
+-----------------------------------------------------------------------
+
+```{r}
+url <- 'https://www.football-data.co.uk/englandm.php'
+
+webpage <- read_html(url)
+
+date <- html_nodes(webpage,"i")[1] %>% 
+  html_text() %>% 
+  str_remove("\t") %>% 
+  str_remove("Last updated: ")
+
+text <- "Note: Results data from www.football-data.co.uk is available up to "
+
+warning <- ". This may impact the data shown below"
+
+text_to_include <- paste0(text, date, warning)
+```
+
+`r text_to_include`
 
 Row
 -----------------------------------------------------------------------
