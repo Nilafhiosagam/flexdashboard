@@ -46,7 +46,7 @@ predictions <- files %>%
 ```{r}
 
 results_fixtures <- read_csv("~/R/projects/football/outputs/results_fixtures.csv") %>% 
-  mutate(Date = as_date(Date, tz = "GMT"), Date = Date + 1)
+  mutate(Date = as_date(Date, tz = "GMT"))
 
 final_predictions <- predictions %>%  
   group_by(team_home, team_away) %>% 
@@ -191,13 +191,13 @@ next_gameweek_table <- next_gameweek %>%
          "Prediction" = ".pred_class")
 
 gameweek <- as.integer(min(next_gameweek$gameweek))
-date_ran <- as_date(min(next_gameweek$date_ran))
+#date_ran <- as_date(min(next_gameweek$date_ran))
 
 gt_table <- next_gameweek_table %>% 
   gt() %>% 
   tab_header(title = "Predictions", 
              subtitle = glue("Gameweek Starting: {gameweek}")) %>% 
-  tab_source_note(source_note = glue("Date ran: {date_ran}")) %>% 
+  tab_source_note(source_note = glue("Date ran: {todays_date}")) %>% 
   fmt_percent(columns = vars(Home, Draw, Away)) %>%
   cols_align(columns = vars(Home, Draw, Away, Prediction), align = "center") %>%
   tab_spanner(label = "Weighting", columns = vars(Home, Draw, Away)) %>% 
